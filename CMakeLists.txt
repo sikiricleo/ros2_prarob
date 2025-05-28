@@ -19,6 +19,7 @@ install(DIRECTORY
   urdf
   controllers
   launch
+  meshes
   DESTINATION share/${PROJECT_NAME}
 )
 
