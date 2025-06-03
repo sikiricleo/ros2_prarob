@@ -1,0 +1,214 @@
+#!/usr/bin/env python3
+
+import rclpy
+from rclpy.node import Node
+import numpy as np
+import math
+
+from ros2_prarob_interfaces.msg import NavTask, JointState, PlannedJointSequence 
+from yolo_msgs.msg import DetectionArray
+from prarob_calib.camera_to_world import image2world
+#from Kinematics import inverse_kinematics
+
+from pathfinding.core.grid import Grid
+from pathfinding.finder.a_star import AStarFinder
+from pathfinding.core.diagonal_movement import DiagonalMovement
+
+
+class PathPlannerNode(Node):
+    def __init__(self):
+        super().__init__('path_planner_node')
+
+        self.task_subscriber = self.create_subscription(
+            NavTask,
+            '/task',
+            self.task_callback,
+            10
+        )
+
+        self.yolo_subscriber = self.create_subscription(
+            DetectionArray,
+            '/yolo/detections',
+            self.detections_callback,
+            10
+        )
+
+        self.joint_sequence_publisher = self.create_publisher(
+            PlannedJointSequence,
+            '/planned_joint_sequence',
+            10
+        )
+
+        self.camera_intrinsics = None # Placeholder for camera intrinsics
+        self.T_camera_robot = None  # Placeholder for transformation from camera to robot base
+
+        self.yolo_detections = None
+        
+
+
+    def detections_callback(self, msg):
+        self.yolo_detections = msg.detections
+
+    def yolo_detections_to_world(self, msg):
+        start_position = None
+        goal_position = None
+        obstacle_boundaries = []
+        for detection in self.yolo_detections:
+            if detection.class_name == msg.start_class_name:
+                start_position = detection.bbox.center
+            elif detection.class_name == msg.goal_class_name:
+                goal_position = detection.bbox.center
+            elif detection.class_name in msg.obstacle_class_name:
+                obstacle_boundaries.append(
+                    detection.bbox.center.position.x - detection.bbox.size.x / 2,
+                    detection.bbox.center.position.y - detection.bbox.size.y / 2,
+                    detection.bbox.center.position.x + detection.bbox.size.x / 2,
+                    detection.bbox.center.position.y + detection.bbox.size.y / 2,
+                )
+
+        if start_position is None or goal_position is None:
+            self.get_logger().warn("Start or goal position not found in YOLO detections.")
+            return None, None, None, None
+
+        start_position_world = image2world(
+            (start_position.position.x, start_position.position.y),
+            self.camera_intrinsics,
+            self.T_camera_robot
+        )
+        goal_position_world = image2world(
+            (goal_position.position.x, goal_position.position.y),
+            self.camera_intrinsics,
+            self.T_camera_robot
+        )
+
+        if not obstacle_boundaries:
+            self.get_logger().warn("No obstacles found in YOLO detections.")
+            obstacle_positions_bottom_left = []
+            obstacle_positions_top_right = []
+
+        else:
+            obstacle_positions_bottom_left = [
+                image2world(
+                    (obstacle[0], obstacle[1]),
+                    self.camera_intrinsics,
+                    self.T_camera_robot
+                ) for obstacle in obstacle_boundaries
+            ]
+            obstacle_positions_top_right = [
+                image2world(
+                    (obstacle[2], obstacle[3]),
+                    self.camera_intrinsics,
+                    self.T_camera_robot
+                ) for obstacle in obstacle_boundaries
+            ]
+
+        return start_position_world, goal_position_world, obstacle_positions_bottom_left, obstacle_positions_top_right
+    
+    def clamp_to_grid(self, num, limit):
+        return max(0, min(num, limit))
+    
+    def plan_path(self, start_position_world, goal_position_world, obstacle_positions_bottom_left, obstacle_positions_top_right):
+        grid_resolution = 0.01      # 1 cm resolution
+        grid_origin_x = -0.35 / 2   #fill in
+        grid_origin_y = 0.35        # fill in
+        num_rows = 35
+        num_cols = 35
+        grid = np.zeros((num_rows, num_cols)) 
+
+        # Mark obstacles in the grid
+        if obstacle_positions_bottom_left:
+            for i in range(len(obstacle_positions_bottom_left)):
+                x_min = obstacle_positions_bottom_left[i][0]
+                y_min = obstacle_positions_bottom_left[i][1]
+                x_max = obstacle_positions_top_right[i][0]
+                y_max = obstacle_positions_top_right[i][1]
+                col_min = self.clamp_to_grid(int((x_min - grid_origin_x) / grid_resolution), num_cols - 1)
+                col_max = self.clamp_to_grid(int((x_max - grid_origin_x) / grid_resolution), num_rows - 1)
+                row_min = self.clamp_to_grid(int((grid_origin_y - y_max) / grid_resolution), num_cols - 1)
+                row_max = self.clamp_to_grid(int((grid_origin_y - y_min) / grid_resolution), num_rows - 1)
+
+                for c in range(col_min, col_max + 1):
+                    for r in range(row_min, row_max + 1):
+                        grid[r][c] = 1
+
+        grid_object = Grid(matrix=grid)
+
+
+        start_node = grid_object.node(
+            self.clamp_to_grid(int((start_position_world[0] - grid_origin_x) / grid_resolution), num_cols - 1),
+            self.clamp_to_grid(int((grid_origin_y - start_position_world[1]) / grid_resolution), num_rows - 1)
+        )
+        goal_node = grid_object.node(
+            self.clamp_to_grid(int((goal_position_world[0] - grid_origin_x) / grid_resolution), num_cols - 1),
+            self.clamp_to_grid(int((grid_origin_y - goal_position_world[1]) / grid_resolution), num_rows - 1)
+        )
+
+        finder = AStarFinder(
+            diagonal_movement=DiagonalMovement.always
+        )
+
+        path, runs = finder.find_path(
+            start_node,
+            goal_node,
+            grid_object
+        )
+        
+        if not path:
+            self.get_logger().warn("No path found.")
+            return None
+        else:
+            self.get_logger().info(f"Path found with {len(path)} nodes and {runs} runs.")
+
+        robot_path_coordinates = []
+        for node in path:
+            robot_x = grid_origin_x + node.x * grid_resolution + grid_resolution / 2 
+            robot_y = grid_origin_y - node.y * grid_resolution - grid_resolution / 2
+            robot_path_coordinates.append((robot_x, robot_y))
+
+        return robot_path_coordinates
+
+    def task_callback(self, msg):
+        self.get_logger().info(f"Received task: Navigate from {msg.start_class_name} to {msg.goal_class_name} while avoiding {msg.obstacle_class_name}.")
+        
+        if self.yolo_detections is None:
+            self.get_logger().warn("No YOLO detections received yet.")
+            return
+        
+        start_position_world, goal_position_world, obstacle_positions_bottom_left, obstacle_positions_top_right = self.yolo_detections_to_world(msg)
+        if start_position_world is None or goal_position_world is None:
+            return
+        
+        robot_path_coordinates = self.plan_path(
+            start_position_world,
+            goal_position_world,
+            obstacle_positions_bottom_left,
+            obstacle_positions_top_right
+        )
+
+        if robot_path_coordinates is None:
+            return
+        
+        # pen up
+        planned_joint_sequence_pu = PlannedJointSequence()
+        joint_state_pu = JointState()
+        #joint_state_pu.q1, joint_state_pu.q2, joint_state_pu.q3 = inverse_kinematics(robot_path_coordinates[0][0], robot_path_coordinates[0][1], 0.05, 0.0, 0.0, -1.0)
+        planned_joint_sequence_pu.joints_sequence.append(joint_state_pu)
+        self.joint_sequence_publisher.publish(planned_joint_sequence)
+
+        planned_joint_sequence = PlannedJointSequence()
+        for coord in robot_path_coordinates:
+            joint_state = JointState()
+            #joint_state.q1, joint_state.q2, joint_state.q3 = inverse_kinematics(coord[0], coord[1], 0, 0.0, 0.0, -1.0)  # Assuming a fixed end-effector orientation
+            planned_joint_sequence.joints_sequence.append(joint_state)
+        self.joint_sequence_publisher.publish(planned_joint_sequence)
+
+    
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = PathPlannerNode()
+    rclpy.spin(node)
+    rclpy.shutdown()
+
+if __name__=='__main__':
+    main()
