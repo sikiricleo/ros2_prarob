@@ -15,17 +15,12 @@
 <!-- xacro:include filename="$(find ros2_prarob)/urdf/prarob_manipulator.gazebo" / -->
 
 <link name="link1">
-  <!-- inertial>
-    <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
-    <mass value="0.0"/>
-    <inertia ixx="0.0" iyy="0.0" izz="0.0" ixy="0.0" iyz="0.0" ixz="0.0"/>
-  </inertial -->
   <visual>
     <origin xyz="0 0 0" rpy="0 0 0"/>
     <geometry>
       <mesh filename="package://ros2_prarob/meshes/Postolje.stl" scale="0.001 0.001 0.001"/>
     </geometry>
-    <material name="silver"/>
+    <material name="Steel"/>
   </visual>
   <collision>
     <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -36,20 +31,15 @@
 </link>
 
 <link name="XL-430-DUMMY_1">
-  <!-- inertial>
-    <origin xyz="0.04552107498052348 -0.008523635973404789 0.04077229889987345" rpy="0 0 0"/>
-    <mass value="0.32236070836601705"/>
-    <inertia ixx="5e-05" iyy="8.6e-05" izz="7.8e-05" ixy="-0.0" iyz="-0.0" ixz="-2e-06"/>
-  </inertial -->
   <visual>
-    <origin xyz="0.070882 -0.028065 0.042342" rpy="0 0 0"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
     <geometry>
       <mesh filename="package://ros2_prarob/meshes/XL-430-DUMMY.stl" scale="0.001 0.001 0.001"/>
     </geometry>
-    <material name="silver"/>
+    <material name="Steel"/>
   </visual>
   <collision>
-    <origin xyz="0.070882 -0.028065 0.042342" rpy="0 0 0"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
     <geometry>
       <mesh filename="package://ros2_prarob/meshes/XL-430-DUMMY.stl" scale="0.001 0.001 0.001"/>
     </geometry>
@@ -57,20 +47,15 @@
 </link>
 
 <link name="link2">
-  <!-- inertial>
-    <origin xyz="1.313686505965972e-07 3.799087183557759e-07 0.007236548561630161" rpy="0 0 0"/>
-    <mass value="0.051205577518979827"/>
-    <inertia ixx="5e-06" iyy="1.2e-05" izz="1.4e-05" ixy="-0.0" iyz="-0.0" ixz="0.0"/>
-  </inertial -->
   <visual>
-    <origin xyz="0.013441 -0.019532 -0.016329" rpy="0 0 0"/>
+    <origin xyz="-4.4408920985e-18 0.0000000000e+00 0.0000000000e+00" rpy="0.0 0.0 0.0"/>
     <geometry>
       <mesh filename="package://ros2_prarob/meshes/Link_90.stl" scale="0.001 0.001 0.001"/>
     </geometry>
-    <material name="silver"/>
+    <material name="Steel"/>
   </visual>
   <collision>
-    <origin xyz="0.013441 -0.019532 -0.016329" rpy="0 0 0"/>
+    <origin xyz="-4.4408920985e-18 0.0000000000e+00 0.0000000000e+00" rpy="0.0 0.0 0.0"/>
     <geometry>
       <mesh filename="package://ros2_prarob/meshes/Link_90.stl" scale="0.001 0.001 0.001"/>
     </geometry>
@@ -78,20 +63,15 @@
 </link>
 
 <link name="XL-430-DUMMY_2">
-  <!-- inertial>
-    <origin xyz="0.03154239274272504 -0.008541604373071877 0.0007509813313925362" rpy="0 0 0"/>
-    <mass value="0.32236070836601705"/>
-    <inertia ixx="7.8e-05" iyy="8.6e-05" izz="5e-05" ixy="0.0" iyz="0.0" ixz="-2e-06"/>
-  </inertial -->
   <visual>
-    <origin xyz="0.043882 -0.028065 -0.051658" rpy="0 0 0"/>
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
     <geometry>
       <mesh filename="package://ros2_prarob/meshes/XL-430-DUMMY.stl" scale="0.001 0.001 0.001"/>
     </geometry>
-    <material name="silver"/>
+    <material name="Steel"/>
   </visual>
   <collision>
-    <origin xyz="0.043882 -0.028065 -0.051658" rpy="0 0 0"/>
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
     <geometry>
       <mesh filename="package://ros2_prarob/meshes/XL-430-DUMMY.stl" scale="0.001 0.001 0.001"/>
     </geometry>
@@ -99,20 +79,15 @@
 </link>
 
 <link name="link3">
-  <!-- inertial>
-    <origin xyz="0.004211318281894754 3.7974480672151034e-07 0.10000003920965964" rpy="0 0 0"/>
-    <mass value="0.13371939999286847"/>
-    <inertia ixx="0.000606" iyy="0.0006" izz="7e-06" ixy="0.0" iyz="0.0" ixz="-0.0"/>
-  </inertial -->
   <visual>
-    <origin xyz="-0.005559 -0.019532 -0.064329" rpy="0 0 0"/>
+     <origin xyz="-1.0000000149e-01 0.0000000000e+00 -4.1000000000e-03" rpy="0.0 0.0 0.0"/>
     <geometry>
       <mesh filename="package://ros2_prarob/meshes/Link_RR.stl" scale="0.001 0.001 0.001"/>
     </geometry>
-    <material name="silver"/>
+    <material name="Steel"/>
   </visual>
   <collision>
-    <origin xyz="-0.005559 -0.019532 -0.064329" rpy="0 0 0"/>
+     <origin xyz="-1.0000000149e-01 0.0000000000e+00 -4.1000000000e-03" rpy="0.0 0.0 0.0"/>
     <geometry>
       <mesh filename="package://ros2_prarob/meshes/Link_RR.stl" scale="0.001 0.001 0.001"/>
     </geometry>
@@ -120,20 +95,15 @@
 </link>
 
 <link name="XL-430-DUMMY_3">
-  <!-- inertial>
-    <origin xyz="-0.017898607257275104 9.363862685157764e-06 0.011920097087554649" rpy="0 0 0"/>
-    <mass value="0.32236070836601705"/>
-    <inertia ixx="7.8e-05" iyy="8.6e-05" izz="5e-05" ixy="-0.0" iyz="0.0" ixz="2e-06"/>
-  </inertial -->
   <visual>
-    <origin xyz="-0.005559 -0.019532 -0.264329" rpy="0 0 0"/>
+    <origin xyz="0.0000000000e+00 -7.1054273576e-17 -2.0900000000e-02" rpy="0.0 0.0 0.0"/>
     <geometry>
       <mesh filename="package://ros2_prarob/meshes/XL-430-DUMMY.stl" scale="0.001 0.001 0.001"/>
     </geometry>
-    <material name="silver"/>
+    <material name="Steel"/>
   </visual>
   <collision>
-    <origin xyz="-0.005559 -0.019532 -0.264329" rpy="0 0 0"/>
+    <origin xyz="0.0000000000e+00 -7.1054273576e-17 -2.0900000000e-02" rpy="0.0 0.0 0.0"/>
     <geometry>
       <mesh filename="package://ros2_prarob/meshes/XL-430-DUMMY.stl" scale="0.001 0.001 0.001"/>
     </geometry>
@@ -141,20 +111,15 @@
 </link>
 
 <link name="link_tool">
-  <!-- inertial>
-    <origin xyz="-0.29957315293648246 -0.026440620091279402 0.05057202391299859" rpy="0 0 0"/>
-    <mass value="0.05021305846733036"/>
-    <inertia ixx="6e-06" iyy="8e-06" izz="8e-06" ixy="0.0" iyz="0.0" ixz="-1e-06"/>
-  </inertial -->
   <visual>
-    <origin xyz="-0.282888 -0.045973 -0.255797" rpy="0 0 0"/>
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
     <geometry>
       <mesh filename="package://ros2_prarob/meshes/Izvrsni_clan.stl" scale="0.001 0.001 0.001"/>
     </geometry>
-    <material name="silver"/>
+    <material name="Steel"/>
   </visual>
   <collision>
-    <origin xyz="-0.282888 -0.045973 -0.255797" rpy="0 0 0"/>
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
     <geometry>
       <mesh filename="package://ros2_prarob/meshes/Izvrsni_clan.stl" scale="0.001 0.001 0.001"/>
     </geometry>
@@ -164,26 +129,26 @@
 
 
 <joint name="rigid1" type="fixed">
-  <origin xyz="-0.070882 0.028065 -0.042342" rpy="0 0 0"/>
+  <origin xyz="1.2000000000e-02 -2.2204460493e-17 2.0000000000e-02" rpy="0.0 0.0 -1.570796"/>
   <parent link="link1"/>
   <child link="XL-430-DUMMY_1"/>
 </joint>
 
-
 <joint name="rigid2" type="fixed">
-  <origin xyz="-0.030441 0.008533 0.035329" rpy="0 0 0"/>
+  <origin xyz="3.3217872897e-15 -1.6391000557e-10 4.5000000194e-02" rpy="1.570796 -0.0 1.570796"/>
   <parent link="link2"/>
   <child link="XL-430-DUMMY_2"/>
 </joint>
 
 <joint name="rigid3" type="fixed">
-  <origin xyz="0.277329 0.026441 -0.008532" rpy="0 0 0"/>
+  <origin xyz="-1.6391275004e-10 -3.7000000075e-02 -2.0900000000e-02" rpy="1.570796 -1.570796 0.0"/>
   <parent link="XL-430-DUMMY_3"/>
   <child link="link_tool"/>
 </joint>
 
+
 <joint name="joint1" type="revolute">
-  <origin xyz="0.057441 -0.008533 0.058671" rpy="0 0 0"/>
+  <origin xyz="8.8817841970e-18 2.6645352591e-17 2.2000000000e-02" rpy="0.0 0.0 1.570796"/>
   <parent link="XL-430-DUMMY_1"/>
   <child link="link2"/>
   <axis xyz="0.0 0.0 1.0"/>
@@ -191,18 +156,18 @@
 </joint>
 
 <joint name="joint2" type="revolute">
-  <origin xyz="0.049441 -0.008533 0.012671" rpy="0 0 0"/>
+  <origin xyz="4.4408920985e-18 -4.4408920985e-18 2.0900000000e-02" rpy="-3.141593 0.0 -1.570796"/>
   <parent link="XL-430-DUMMY_2"/>
   <child link="link3"/>
-  <axis xyz="1.0 0.0 0.0"/>
+  <axis xyz="0.0 0.0 1.0"/>
   <limit velocity="10.0" effort="1" lower="-2.82743338823" upper="2.82743338823" />
 </joint>
 
 <joint name="joint3" type="revolute">
-  <origin xyz="0.0 0.0 0.2" rpy="0 0 0"/>
+   <origin xyz="-2.0000000298e-01 6.2172489379e-17 -6.2172489379e-17" rpy="3.141593 0.0 1.570796"/>
   <parent link="link3"/>
   <child link="XL-430-DUMMY_3"/>
-  <axis xyz="1.0 0.0 0.0"/>
+  <axis xyz="0.0 0.0 1.0"/>
   <limit velocity="10.0" effort="1" lower="-2.82743338823" upper="2.82743338823" />
 </joint>
 

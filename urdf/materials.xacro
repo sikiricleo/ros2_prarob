@@ -1,8 +1,7 @@
 <?xml version="1.0" ?>
-<robot name="prarob_manipulator" xmlns:xacro="http://www.ros.org/wiki/xacro" >
-
-<material name="silver">
-  <color rgba="0.700 0.700 0.700 1.000"/>
-</material>
-
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="prarob_manipulator">
+  <material name="Steel">
+    <color rgba="1.0 1.0 1.0 1.0"/>
+  </material>
+  <xacro:property name="existing_contact_coefficients" value="[]"/>
 </robot>
