@@ -8,7 +8,7 @@ import time
 from ros2_prarob_interfaces.msg import NavTask, JointState, PlannedJointSequence 
 from yolo_msgs.msg import DetectionArray
 from prarob_calib.camera_to_world import image2world
-from Kinematics import Kinematics
+from kinematics import Kinematics
 
 from pathfinding.core.grid import Grid
 from pathfinding.finder.a_star import AStarFinder
@@ -39,14 +39,17 @@ class PathPlannerNode(Node):
             10
         )
 
-        self.camera_intrinsics = [[1310.9971846209182, 0, 333.73199923763389], 
+        self.camera_intrinsics = np.array(
+                                 [[1310.9971846209182, 0, 333.73199923763389], 
                                   [0, 1317.9156230092792, 392.66682249055191],
                                   [0, 0, 1]
-                                 ]
-        self.T_camera_robot = [[0.98741, 0.12037, 0.10261, 0.01909],
+                                 ])
+        self.T_camera_robot = np.array(
+                              [[0.98741, 0.12037, 0.10261, 0.01909],
                                [0.10945, -0.98831, 0.10617, 0.06678],
                                [0.11419, -0.0936, -0.98904, 0.92001],
-                               [0, 0, 0, 1]]
+                               [0, 0, 0, 1]
+                              ])
 
         self.yolo_detections = None
 
@@ -209,7 +212,7 @@ class PathPlannerNode(Node):
         planned_joint_sequence = PlannedJointSequence()
         for coord in robot_path_coordinates:
             joint_state = JointState()
-            joint_state.q1, joint_state.q2, joint_state.q3 = Kinematics.inverse_kinematics((coord[0], coord[1], 0,))  # Assuming a fixed end-effector orientation
+            joint_state.q1, joint_state.q2, joint_state.q3 = Kinematics.inverse_kinematics((coord[0], coord[1], 0,)) 
             planned_joint_sequence.joints_sequence.append(joint_state)
         self.joint_sequence_publisher.publish(planned_joint_sequence)
 

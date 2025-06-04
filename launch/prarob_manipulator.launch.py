@@ -109,13 +109,13 @@ def generate_launch_description():
             executable='static_transform_publisher',
             arguments=[
                 '0', '0', '0',      # translation: x y z
-                '0', '0', '0',      # rotation: roll pitch yaw (radians)
+                '0', '0', '0', '1', # rotation: qx qy qz qw
                 'world',            # parent frame
                 'link1'             # child frame
             ],
         ),
 
-        Node(
+        Node(                       # ros2 launch usb_cam camera.launch.py for computer camera
             package='usb_cam', 
             executable='usb_cam_node_exe',
             name="camera",
@@ -128,7 +128,7 @@ def generate_launch_description():
 
         Node(
             package='ros2_prarob',
-            executable='Kinematics.py',
+            executable='kinematics.py',
             name='kinematics_node',
             output='screen'
         ),

@@ -18,7 +18,6 @@ find_package(dynamixel_hardware REQUIRED)
 install(DIRECTORY
   urdf
   controllers
-  config
   launch
   meshes
   DESTINATION share/${PROJECT_NAME}
@@ -27,7 +26,7 @@ install(DIRECTORY
 install(PROGRAMS
   scripts/move_robot.py
   scripts/path_planner.py
-  scripts/Kinematics.py
+  scripts/kinematics.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

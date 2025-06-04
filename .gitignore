@@ -9,3 +9,5 @@ cache/
 tmp/
 temp/
 __pycache__/
+
+*.pt
