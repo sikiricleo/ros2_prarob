@@ -26,16 +26,16 @@ class prarobClientNode(Node):
         )
 
         # TEST single point
-        print(self.move_robot([0, 0.0, -2.0]))
-        self.get_clock().sleep_for(Duration(seconds=1.0))
-        print(self.move_robot([0, 1.0, -2.0]))
-        self.get_clock().sleep_for(Duration(seconds=1.0))
-        print(self.move_robot([-1.0, 0.0, -2.0]))
-        print(self.move_robot([0, 0.0, 2.0]))
-        self.get_clock().sleep_for(Duration(seconds=1.0))
-        print(self.move_robot([0, -1.0, 2.0]))
-        self.get_clock().sleep_for(Duration(seconds=1.0))
-        print(self.move_robot([1.0, 0.0, -2.0]))
+        #print(self.move_robot([0, 0.0, -2.0]))
+        #self.get_clock().sleep_for(Duration(seconds=1.0))
+        #print(self.move_robot([0, 1.0, -2.0]))
+        #self.get_clock().sleep_for(Duration(seconds=1.0))
+        #print(self.move_robot([-1.0, 0.0, -2.0]))
+        #print(self.move_robot([0, 0.0, 2.0]))
+        #self.get_clock().sleep_for(Duration(seconds=1.0))
+        #print(self.move_robot([0, -1.0, 2.0]))
+        #self.get_clock().sleep_for(Duration(seconds=1.0))
+        #print(self.move_robot([1.0, 0.0, -2.0]))
 
 
     def move_robot(self, q):
@@ -49,7 +49,7 @@ class prarobClientNode(Node):
         goal_point.positions.append(q[0])
         goal_point.positions.append(q[1])
         goal_point.positions.append(q[2])
-        goal_point.time_from_start = Duration(seconds=0.01).to_msg()
+        goal_point.time_from_start = Duration(seconds=0.1).to_msg()
 
         goal_trajectory.points.append(goal_point)
 
@@ -64,7 +64,7 @@ class prarobClientNode(Node):
         goal_trajectory.joint_names.append('joint2')
         goal_trajectory.joint_names.append('joint3')
 
-        time_from_start = 0.01
+        time_from_start = 0.1
 
         for q in msg.joints_sequence:
             goal_point = JointTrajectoryPoint()
@@ -74,7 +74,7 @@ class prarobClientNode(Node):
             goal_point.time_from_start = Duration(seconds=time_from_start).to_msg()
             
             goal_trajectory.points.append(goal_point)
-            time_from_start += 0.01
+            time_from_start += 0.1
 
         self.robot_goal_publisher_.publish(goal_trajectory)
 

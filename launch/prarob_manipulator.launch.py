@@ -19,6 +19,9 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
 
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+
 import xacro
 
 
@@ -36,7 +39,25 @@ def generate_launch_description():
             package_name), "controllers", "controllers.yaml"
     )
 
+    camera_config_path = os.path.join(
+        get_package_share_directory('prarob_calib'),
+        'config',
+        'camera_params.yaml'
+        )
+
+    yolo_launch_file = os.path.join(
+        get_package_share_directory('yolo_bringup'),
+        'launch',
+        'yolo.launch.py'
+    )
+
+        
     return LaunchDescription([
+
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(yolo_launch_file)
+        ),
+
         Node(
             package="controller_manager",
             executable="ros2_control_node",
@@ -81,6 +102,42 @@ def generate_launch_description():
             name="rviz2",
             arguments=["-d", rviz_config],
             output="screen",
-        )
+        ),
+
+        Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            arguments=[
+                '0', '0', '0',      # translation: x y z
+                '0', '0', '0',      # rotation: roll pitch yaw (radians)
+                'world',            # parent frame
+                'link1'             # child frame
+            ],
+        ),
+
+        Node(
+            package='usb_cam', 
+            executable='usb_cam_node_exe',
+            name="camera",
+            parameters=[camera_config_path],
+            remappings=[
+                ('/image_raw', '/camera/image_raw'),
+                ('/camera_info', '/camera/camera_info'),
+            ]
+        ),
+
+        Node(
+            package='ros2_prarob',
+            executable='Kinematics.py',
+            name='kinematics_node',
+            output='screen'
+        ),
+
+        Node(
+            package='ros2_prarob',
+            executable='path_planner.py',
+            name='path_planner_node',
+            output='screen'
+        ),
 
     ])

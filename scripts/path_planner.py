@@ -3,12 +3,12 @@
 import rclpy
 from rclpy.node import Node
 import numpy as np
-import math
+import time
 
 from ros2_prarob_interfaces.msg import NavTask, JointState, PlannedJointSequence 
 from yolo_msgs.msg import DetectionArray
 from prarob_calib.camera_to_world import image2world
-#from Kinematics import inverse_kinematics
+from Kinematics import Kinematics
 
 from pathfinding.core.grid import Grid
 from pathfinding.finder.a_star import AStarFinder
@@ -39,10 +39,18 @@ class PathPlannerNode(Node):
             10
         )
 
-        self.camera_intrinsics = None # Placeholder for camera intrinsics
-        self.T_camera_robot = None  # Placeholder for transformation from camera to robot base
+        self.camera_intrinsics = [[1310.9971846209182, 0, 333.73199923763389], 
+                                  [0, 1317.9156230092792, 392.66682249055191],
+                                  [0, 0, 1]
+                                 ]
+        self.T_camera_robot = [[0.98741, 0.12037, 0.10261, 0.01909],
+                               [0.10945, -0.98831, 0.10617, 0.06678],
+                               [0.11419, -0.0936, -0.98904, 0.92001],
+                               [0, 0, 0, 1]]
 
         self.yolo_detections = None
+
+        self.get_logger().info("Path Planner Node has been started.")
         
 
 
@@ -58,7 +66,7 @@ class PathPlannerNode(Node):
                 start_position = detection.bbox.center
             elif detection.class_name == msg.goal_class_name:
                 goal_position = detection.bbox.center
-            elif detection.class_name in msg.obstacle_class_name:
+            elif detection.class_name in msg.obstacle_class_names:
                 obstacle_boundaries.append(
                     detection.bbox.center.position.x - detection.bbox.size.x / 2,
                     detection.bbox.center.position.y - detection.bbox.size.y / 2,
@@ -109,10 +117,10 @@ class PathPlannerNode(Node):
     
     def plan_path(self, start_position_world, goal_position_world, obstacle_positions_bottom_left, obstacle_positions_top_right):
         grid_resolution = 0.01      # 1 cm resolution
-        grid_origin_x = -0.35 / 2   #fill in
-        grid_origin_y = 0.35        # fill in
-        num_rows = 35
-        num_cols = 35
+        grid_origin_x = -0.25
+        grid_origin_y = 0.33
+        num_rows = 40
+        num_cols = 40
         grid = np.zeros((num_rows, num_cols)) 
 
         # Mark obstacles in the grid
@@ -168,7 +176,7 @@ class PathPlannerNode(Node):
         return robot_path_coordinates
 
     def task_callback(self, msg):
-        self.get_logger().info(f"Received task: Navigate from {msg.start_class_name} to {msg.goal_class_name} while avoiding {msg.obstacle_class_name}.")
+        self.get_logger().info(f"Received task: Navigate from {msg.start_class_name} to {msg.goal_class_name} while avoiding {msg.obstacle_class_names}.")
         
         if self.yolo_detections is None:
             self.get_logger().warn("No YOLO detections received yet.")
@@ -191,14 +199,17 @@ class PathPlannerNode(Node):
         # pen up
         planned_joint_sequence_pu = PlannedJointSequence()
         joint_state_pu = JointState()
-        #joint_state_pu.q1, joint_state_pu.q2, joint_state_pu.q3 = inverse_kinematics(robot_path_coordinates[0][0], robot_path_coordinates[0][1], 0.05, 0.0, 0.0, -1.0)
+        joint_state_pu.q1, joint_state_pu.q2, joint_state_pu.q3 = Kinematics.inverse_kinematics((robot_path_coordinates[0][0], robot_path_coordinates[0][1], 0.05))
         planned_joint_sequence_pu.joints_sequence.append(joint_state_pu)
         self.joint_sequence_publisher.publish(planned_joint_sequence)
 
+        time.sleep(1.0)
+
+        # pen down
         planned_joint_sequence = PlannedJointSequence()
         for coord in robot_path_coordinates:
             joint_state = JointState()
-            #joint_state.q1, joint_state.q2, joint_state.q3 = inverse_kinematics(coord[0], coord[1], 0, 0.0, 0.0, -1.0)  # Assuming a fixed end-effector orientation
+            joint_state.q1, joint_state.q2, joint_state.q3 = Kinematics.inverse_kinematics((coord[0], coord[1], 0,))  # Assuming a fixed end-effector orientation
             planned_joint_sequence.joints_sequence.append(joint_state)
         self.joint_sequence_publisher.publish(planned_joint_sequence)
 

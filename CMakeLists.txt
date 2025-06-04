@@ -27,6 +27,7 @@ install(DIRECTORY
 install(PROGRAMS
   scripts/move_robot.py
   scripts/path_planner.py
+  scripts/Kinematics.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
