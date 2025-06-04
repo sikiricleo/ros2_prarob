@@ -1,1 +1,1 @@
-# prarob_ros
+# Seminarski zadatak iz kolegija Praktikum robotike

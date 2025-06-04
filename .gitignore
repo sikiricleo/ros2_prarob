@@ -1,0 +1,11 @@
+# Ignore cache files
+*.cache
+*.tmp
+*.temp
+*.pyc
+
+# Ignore temporary directories
+cache/
+tmp/
+temp/
+__pycache__/
