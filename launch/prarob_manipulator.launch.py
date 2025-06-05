@@ -122,7 +122,6 @@ def generate_launch_description():
             parameters=[camera_config_path],
             remappings=[
                 ('/image_raw', '/camera/image_raw'),
-                ('/camera_info', '/camera/camera_info'),
             ]
         ),
 
@@ -137,6 +136,13 @@ def generate_launch_description():
             package='ros2_prarob',
             executable='path_planner.py',
             name='path_planner_node',
+            output='screen'
+        ),
+
+        Node(
+            package='ros2_prarob',
+            executable='move_robot.py',
+            name='prarob_client_node',
             output='screen'
         ),
 

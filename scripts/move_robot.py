@@ -10,6 +10,7 @@ from control_msgs.action import FollowJointTrajectory
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from ros2_prarob_interfaces.msg import PlannedJointSequence
 
+from kinematics import Kinematics
 
 class prarobClientNode(Node):
     def __init__(self):
@@ -36,6 +37,12 @@ class prarobClientNode(Node):
         #print(self.move_robot([0, -1.0, 2.0]))
         #self.get_clock().sleep_for(Duration(seconds=1.0))
         #print(self.move_robot([1.0, 0.0, -2.0]))
+
+        #q1, q2, q3 = Kinematics().inverse_kinematics((0.05, 0.05, 0.05))
+        #print(f'Inverse kinematics result: q1={q1}, q2={q2}, q3={q3}')
+        #self.move_robot([q1, q2, q3])
+        print("PraRob Client Node has been started.")
+
 
 
     def move_robot(self, q):

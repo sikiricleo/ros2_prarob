@@ -80,7 +80,8 @@
 
 <link name="link3">
   <visual>
-     <origin xyz="-1.0000000149e-01 0.0000000000e+00 -4.1000000000e-03" rpy="0.0 0.0 0.0"/>
+     <origin xyz="-1.0000000149e-01 0.0000000000e+00 -4.1000000000e-03" rpy="3.141593 0.0 3.141593"/>
+     <!--origin xyz="-1.0000000149e-01 0.0000000000e+00 -4.1000000000e-03" rpy="0.0 0.0 0.0"/-->
     <geometry>
       <mesh filename="package://ros2_prarob/meshes/Link_RR.stl" scale="0.001 0.001 0.001"/>
     </geometry>
@@ -156,7 +157,7 @@
 </joint>
 
 <joint name="joint2" type="revolute">
-  <origin xyz="4.4408920985e-18 -4.4408920985e-18 2.0900000000e-02" rpy="-3.141593 0.0 -1.570796"/>
+  <origin xyz="4.4408920985e-18 -4.4408920985e-18 2.0900000000e-02" rpy="0.0 0.0 1.570796"/>
   <parent link="XL-430-DUMMY_2"/>
   <child link="link3"/>
   <axis xyz="0.0 0.0 1.0"/>

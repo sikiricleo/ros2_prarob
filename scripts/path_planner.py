@@ -13,6 +13,7 @@ from kinematics import Kinematics
 from pathfinding.core.grid import Grid
 from pathfinding.finder.a_star import AStarFinder
 from pathfinding.core.diagonal_movement import DiagonalMovement
+from pathfinding.core.heuristic import euclidean
 
 
 class PathPlannerNode(Node):
@@ -71,10 +72,10 @@ class PathPlannerNode(Node):
                 goal_position = detection.bbox.center
             elif detection.class_name in msg.obstacle_class_names:
                 obstacle_boundaries.append(
-                    detection.bbox.center.position.x - detection.bbox.size.x / 2,
+                    (detection.bbox.center.position.x - detection.bbox.size.x / 2,
                     detection.bbox.center.position.y - detection.bbox.size.y / 2,
                     detection.bbox.center.position.x + detection.bbox.size.x / 2,
-                    detection.bbox.center.position.y + detection.bbox.size.y / 2,
+                    detection.bbox.center.position.y + detection.bbox.size.y / 2)
                 )
 
         if start_position is None or goal_position is None:
@@ -124,7 +125,7 @@ class PathPlannerNode(Node):
         grid_origin_y = 0.33
         num_rows = 40
         num_cols = 40
-        grid = np.zeros((num_rows, num_cols)) 
+        grid = np.ones((num_rows, num_cols)) 
 
         # Mark obstacles in the grid
         if obstacle_positions_bottom_left:
@@ -134,28 +135,43 @@ class PathPlannerNode(Node):
                 x_max = obstacle_positions_top_right[i][0]
                 y_max = obstacle_positions_top_right[i][1]
                 col_min = self.clamp_to_grid(int((x_min - grid_origin_x) / grid_resolution), num_cols - 1)
-                col_max = self.clamp_to_grid(int((x_max - grid_origin_x) / grid_resolution), num_rows - 1)
-                row_min = self.clamp_to_grid(int((grid_origin_y - y_max) / grid_resolution), num_cols - 1)
+                col_max = self.clamp_to_grid(int((x_max - grid_origin_x) / grid_resolution), num_cols- 1)
+                row_min = self.clamp_to_grid(int((grid_origin_y - y_max) / grid_resolution), num_rows - 1)
                 row_max = self.clamp_to_grid(int((grid_origin_y - y_min) / grid_resolution), num_rows - 1)
 
-                for c in range(col_min, col_max + 1):
-                    for r in range(row_min, row_max + 1):
-                        grid[r][c] = 1
+                for r in range(row_min, row_max + 1):
+                    for c in range(col_min, col_max + 1):
+                        grid[r][c] = 0
 
-        grid_object = Grid(matrix=grid)
+        self.get_logger().info(f"Grid created with {grid}")
+        grid_object = Grid(matrix = grid.tolist())
 
 
         start_node = grid_object.node(
             self.clamp_to_grid(int((start_position_world[0] - grid_origin_x) / grid_resolution), num_cols - 1),
             self.clamp_to_grid(int((grid_origin_y - start_position_world[1]) / grid_resolution), num_rows - 1)
         )
+        self.get_logger().info(f"Start node: {start_node}")
+
         goal_node = grid_object.node(
             self.clamp_to_grid(int((goal_position_world[0] - grid_origin_x) / grid_resolution), num_cols - 1),
             self.clamp_to_grid(int((grid_origin_y - goal_position_world[1]) / grid_resolution), num_rows - 1)
         )
+        self.get_logger().info(f"Goal node: {goal_node}")
+
+        #num_rows = grid_object.height
+        #num_cols = grid_object.width
+
+        #for y in range(num_rows):
+        #    row_cells = []
+        #    for x in range(num_cols):
+        #        node = grid_object.node(x, y)
+        #        row_cells.append('0' if node.walkable else '1')
+        #    self.get_logger().info(' '.join(row_cells))      
 
         finder = AStarFinder(
-            diagonal_movement=DiagonalMovement.always
+            diagonal_movement=DiagonalMovement.always,
+            heuristic=euclidean
         )
 
         path, runs = finder.find_path(

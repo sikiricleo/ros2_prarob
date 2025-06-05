@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import math
-import numpy
+import numpy as np
 import rclpy
 from rclpy.node import Node
 from scipy.spatial.transform import Rotation
@@ -10,7 +10,7 @@ from sensor_msgs.msg import JointState
 from geometry_msgs.msg import TransformStamped
 from tf2_ros import TransformBroadcaster
 
-#modules and XL-430 dimensions
+# Dimensions (meters)
 link_RR = 0.20
 link_90 = 0.016
 izvrsni_clan = 0.023
@@ -19,13 +19,14 @@ dynamixel_height = 0.03525
 dynamixel_width = 0.036
 dynamixel_height_from_bolt = 0.032
 dynamixel_offset = 0.012
-tool_length = 0
+tool_length = 0.107
 
 
-#link legths of
+# Link legths 
 link1 = postolje + dynamixel_width + link_90 + dynamixel_height_from_bolt
 link2 = link_RR
 link3 = dynamixel_height + izvrsni_clan + tool_length
+tool_link = dynamixel_height + izvrsni_clan + tool_length
 
 
 class Kinematics(Node):
@@ -39,47 +40,71 @@ class Kinematics(Node):
 
         self.br = TransformBroadcaster(self)
 
+        self.link1 = link1
+        self.link2 = link2
+        self.link3 = link3
+        self.tool_link = tool_link
+        self.dynamixel_offset = dynamixel_offset
+
         self.get_logger().info("Kinematics Node has been started.")
 
 
     def direct_kinematics(self, theta1, theta2, theta3):
-        link1_matrix = numpy.array([[0,          numpy.cos(theta1),  -numpy.sin(theta1),        0            ], 
-                                    [0,          numpy.sin(theta1),   numpy.cos(theta1),  dynamixel_offset   ], 
-                                    [1,                     0,               0,               link1          ], 
-                                    [0,                     0,               0,                 1            ]
-                                    ])
-        link2_matrix = numpy.array([[numpy.cos(theta2), -numpy.sin(theta2),  0,     link2 * numpy.cos(theta2)], 
-                                    [numpy.sin(theta2),  numpy.cos(theta2),  0,     link2 * numpy.sin(theta2)], 
-                                    [0,                     0,               1,                 0            ], 
-                                    [0,                     0,               0,                 1            ]
-                                    ])
-        
-        link3_matrix = numpy.array([[numpy.cos(theta3), -numpy.sin(theta3),  0,     link3 * numpy.cos(theta3)], 
-                                    [numpy.sin(theta3),  numpy.cos(theta3),  0,     link3 * numpy.sin(theta3)], 
-                                    [0,                     0,               1,                 0            ], 
-                                    [0,                     0,               0,                 1            ]
-                                    ])
-        
-        T_base_tool = numpy.dot(numpy.dot(link1_matrix, link2_matrix), link3_matrix)
-        return T_base_tool
+        A0_1 = np.array([
+            [np.cos(theta1), -np.sin(theta1), 0, self.dynamixel_offset * np.cos(theta1)],
+            [np.sin(theta1),  np.cos(theta1), 0, self.dynamixel_offset * np.sin(theta1)],
+            [0,               0,              1, self.link1],
+            [0,               0,              0, 1]
+        ])
+
+        A1_2 = np.array([
+            [np.cos(theta2), -np.sin(theta2),  0, self.link2 * np.cos(theta2)],
+            [np.sin(theta2),  np.cos(theta2),  0, self.link2 * np.sin(theta2)],
+            [0,               0,               1, 0],
+            [0,               0,  0,              1]
+        ])
+
+        A2_3 = np.array([
+            [np.cos(theta3), -np.sin(theta3), 0, self.link3 * np.cos(theta3)],
+            [np.sin(theta3),  np.cos(theta3), 0, self.link3 * np.sin(theta3)],
+            [0,               0,              1, 0],
+            [0,               0,              0, 1]
+        ])
+
+        A3_4 = np.array([
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, self.tool_link],
+            [0, 0, 0, 1]
+        ])
+
+        Transform_matrix = A0_1 @ A1_2 @ A2_3 @ A3_4
+        return Transform_matrix
 
     @staticmethod
-    def inverse_kinematics(self, position):
-        x = position[0] 
-        y = position[1]
-        z = position[2]
+    def inverse_kinematics(position):
+        Px = position[0] 
+        Py = position[1]
+        Pz = position[2]
 
-        theta1 = math.atan2(y, x)
+        theta1 = np.arctan2(Py, Px)
 
-        r = math.sqrt(x**2 + y**2)
-        z_offset = z - link1
+        r = np.sqrt(Px**2 + Py**2)
+        z = Pz - link1 - tool_link
 
-        D = (r**2 + z_offset**2 - link2**2 - link3**2) / (2 * link2 * link3)
+        L2 = link2
+        L3 = link3
+
+        D = (r**2 + z**2 - L2**2 - L3**2) / (2 * L2 * L3)
         if abs(D) > 1:
-            raise ValueError("Kuda ćeš sinko?")
+            #self.get_logger().warn("Kuda ćeš sinko?")
+            return None
 
-        theta3 = math.atan2(-math.sqrt(1 - D**2), D)
-        theta2 = math.atan2(z_offset, r) - math.atan2(link3 * math.sin(theta3), link2 + link3 * math.cos(theta3))
+        theta3 = np.arctan2(np.sqrt(1 - D**2), D)
+
+        phi = np.arctan2(z, r)
+        beta = np.arctan2(L3 * np.sin(theta3), L2 + L3 * np.cos(theta3))
+        theta2 = phi - beta
 
         return theta1, theta2, theta3
     
