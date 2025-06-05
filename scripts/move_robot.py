@@ -26,27 +26,23 @@ class prarobClientNode(Node):
             10
         )
 
-        time.sleep(1.0)  
-        # # TEST single point
-        print(self.move_robot([0.0, 0.0, 0.0]))
-        self.get_clock().sleep_for(Duration(seconds=5.0))
-        print(self.move_robot([3.1459, 0.0, 0.0]))
-        self.get_clock().sleep_for(Duration(seconds=5.0))
-        print(self.move_robot([1.5708, 1.5708, 0.0]))
-        self.get_clock().sleep_for(Duration(seconds=5.0))
-        print(self.move_robot([0.0, 1.5708, 0.0]))
-        self.get_clock().sleep_for(Duration(seconds=5.0))
-        print(self.move_robot([0.0, 1.5708, 1.5708]))
-        self.get_clock().sleep_for(Duration(seconds=5.0))
-        print(self.move_robot([0.0, 0.0, 1.5708]))
-        self.get_clock().sleep_for(Duration(seconds=5.0))
-        print(self.move_robot([0.0, 0.0, 0.0]))
-        self.get_clock().sleep_for(Duration(seconds=5.0))
+        # try:
+        #     q1, q2, q3 = Kinematics().inverse_kinematics((0.0, 0.2, 0.02))
+        #     self.get_logger().info(f'Inverse kinematics result: q1={q1}, q2={q2}, q3={q3}')
+        #     self.move_robot([q1, q2, q3])
+        #     time.sleep(1.0)
+        #     q1, q2, q3 = Kinematics().inverse_kinematics((0.15, 0.15, 0.0))
+        #     self.get_logger().info(f'Inverse kinematics result: q1={q1}, q2={q2}, q3={q3}')
+        #     self.move_robot([q1, q2, q3])
+        #     time.sleep(1.0)
+        #     q1, q2, q3 = Kinematics().inverse_kinematics((-0.15, 0.15, 0.0))
+        #     self.get_logger().info(f'Inverse kinematics result: q1={q1}, q2={q2}, q3={q3}')
+        #     self.move_robot([q1, q2, q3])
+        #     time.sleep(1.0)
+        # except Exception as e:
+        #     self.get_logger().error(f'Error in inverse kinematics: {e}')
 
-        #q1, q2, q3 = Kinematics().inverse_kinematics((0.05, 0.05, 0.05))
-        #print(f'Inverse kinematics result: q1={q1}, q2={q2}, q3={q3}')
-        #self.move_robot([q1, q2, q3])
-        print("PraRob Client Node has been started.")
+        self.get_logger().info("PraRob Client Node has been started.")
 
 
 
@@ -61,7 +57,7 @@ class prarobClientNode(Node):
         goal_point.positions.append(q[0])
         goal_point.positions.append(q[1])
         goal_point.positions.append(q[2])
-        goal_point.time_from_start = Duration(seconds=5.0).to_msg()
+        goal_point.time_from_start = Duration(seconds=1.0).to_msg()
 
         goal_trajectory.points.append(goal_point)
 
@@ -76,7 +72,7 @@ class prarobClientNode(Node):
         goal_trajectory.joint_names.append('joint2')
         goal_trajectory.joint_names.append('joint3')
 
-        time_from_start = 0.1
+        time_from_start = msg.duration
 
         for q in msg.joints_sequence:
             goal_point = JointTrajectoryPoint()
@@ -86,7 +82,7 @@ class prarobClientNode(Node):
             goal_point.time_from_start = Duration(seconds=time_from_start).to_msg()
             
             goal_trajectory.points.append(goal_point)
-            time_from_start += 0.1
+            time_from_start += msg.duration
 
         self.robot_goal_publisher_.publish(goal_trajectory)
 

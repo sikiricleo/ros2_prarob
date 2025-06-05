@@ -215,31 +215,39 @@ class PathPlannerNode(Node):
         if robot_path_coordinates is None:
             return
         
-        # pen up
-        planned_joint_sequence_pu = PlannedJointSequence()
-        joint_state_pu = JointState()
-        joint_state_pu.q1, joint_state_pu.q2, joint_state_pu.q3 = Kinematics.inverse_kinematics((robot_path_coordinates[0][0], robot_path_coordinates[0][1], 0.02))
-        planned_joint_sequence_pu.joints_sequence.append(joint_state_pu)
-        self.joint_sequence_publisher.publish(planned_joint_sequence_pu)
+        try:
+            # pen up
+            planned_joint_sequence_pu = PlannedJointSequence()
+            joint_state_pu = JointState()
+            joint_state_pu.q1, joint_state_pu.q2, joint_state_pu.q3 = Kinematics.inverse_kinematics((robot_path_coordinates[0][0], robot_path_coordinates[0][1], 0.02))
+            planned_joint_sequence_pu.joints_sequence.append(joint_state_pu)
+            planned_joint_sequence_pu.duration = 1.0
+            self.joint_sequence_publisher.publish(planned_joint_sequence_pu)
 
-        time.sleep(1.0)
+            time.sleep(1.0)
 
-        # pen down
-        planned_joint_sequence = PlannedJointSequence()
-        for coord in robot_path_coordinates:
-            joint_state = JointState()
-            joint_state.q1, joint_state.q2, joint_state.q3 = Kinematics.inverse_kinematics((coord[0], coord[1], 0,)) 
-            planned_joint_sequence.joints_sequence.append(joint_state)
-        self.joint_sequence_publisher.publish(planned_joint_sequence)
+            # pen down
+            planned_joint_sequence = PlannedJointSequence()
+            for coord in robot_path_coordinates:
+                joint_state = JointState()
+                joint_state.q1, joint_state.q2, joint_state.q3 = Kinematics.inverse_kinematics((coord[0], coord[1], 0,)) 
+                planned_joint_sequence.joints_sequence.append(joint_state)
+            planned_joint_sequence.duration = 2.0 / len(robot_path_coordinates)
+            self.joint_sequence_publisher.publish(planned_joint_sequence)
 
-        time.sleep(1.0)
+            time.sleep(1.0)
         
-        # pen up
-        planned_joint_sequence_pu = PlannedJointSequence()
-        joint_state_pu = JointState()
-        joint_state_pu.q1, joint_state_pu.q2, joint_state_pu.q3 = Kinematics.inverse_kinematics((robot_path_coordinates[-1][0], robot_path_coordinates[-1][1], 0.05))
-        planned_joint_sequence_pu.joints_sequence.append(joint_state_pu)
-        self.joint_sequence_publisher.publish(planned_joint_sequence_pu)
+            # pen up
+            planned_joint_sequence_pu = PlannedJointSequence()
+            joint_state_pu = JointState()
+            joint_state_pu.q1, joint_state_pu.q2, joint_state_pu.q3 = Kinematics.inverse_kinematics((robot_path_coordinates[-1][0], robot_path_coordinates[-1][1], 0.05))
+            planned_joint_sequence_pu.joints_sequence.append(joint_state_pu)
+            planned_joint_sequence_pu.duration = 1.0
+            self.joint_sequence_publisher.publish(planned_joint_sequence_pu)
+        
+        except Exception as e:
+            self.get_logger().error(f"Error in planning path: {e}")
+            return
 
     
 

@@ -63,7 +63,7 @@ def generate_launch_description():
             executable="ros2_control_node",
             parameters=[
                 {"robot_description": robot_description_config.toxml()}, controller_config],
-            output="screen",
+            #output="screen",
         ),
 
         Node(

@@ -10,6 +10,8 @@ from sensor_msgs.msg import JointState
 from geometry_msgs.msg import TransformStamped
 from tf2_ros import TransformBroadcaster
 
+from sympy import symbols, sin, cos, nsolve
+
 # Dimensions (meters)
 link_RR = 0.20
 link_90 = 0.016
@@ -19,7 +21,7 @@ dynamixel_height = 0.03525
 dynamixel_width = 0.036
 dynamixel_height_from_bolt = 0.032
 dynamixel_offset = 0.012
-tool_length = 0 #0.107
+tool_length = 0.107
 
 
 p0x = 0.012
@@ -34,7 +36,7 @@ p3x = + 0.04 + 0.02 + tool_length
 p3z = 0.02
 
 
-
+joint_state = None
 
 class Kinematics(Node):
 
@@ -43,14 +45,16 @@ class Kinematics(Node):
         
 
         self.joint_state_subscriber = self.create_subscription(JointState, 'joint_states', self.joint_state_callback, 10)
-        self.joint_state = None
 
         self.br = TransformBroadcaster(self)        
 
         self.get_logger().info("Kinematics Node has been started.")
-
-
-    def direct_kinematics(self, theta1, theta2, theta3):
+    
+    def wrap_angle(theta):
+        return (theta + math.pi) % (2 * math.pi) - math.pi
+    
+    @staticmethod
+    def direct_kinematics(theta1, theta2, theta3):
         A0_1 = np.array([
             [np.cos(theta1), -np.sin(theta1), 0, p0x],
             [np.sin(theta1),  np.cos(theta1), 0, 0],
@@ -83,40 +87,64 @@ class Kinematics(Node):
         return Transform_matrix
 
     # @staticmethod
-    # def inverse_kinematics(position):
-    #     Px = position[0] 
-    #     Py = position[1]
-    #     Pz = position[2]
+    # def inverse_kinematics(w):
+    #     w1, w2, w3, w4, w5, w6 = w
 
-    #     theta1 = np.arctan2(Py, Px)
+    #     theta1 = math.atan2(w4, -w5)
 
-    #     r = np.sqrt(Px**2 + Py**2)
-    #     z = Pz - link1 - tool_link
+    #     theta2_3 = math.atan2(w4, math.sin(theta1) * w6)
 
-    #     L2 = link2
-    #     L3 = link3
+    #     theta2 = -math.acos((w3 - p0z - p1z - p3x * math.cos(theta2_3))/p2x)
 
-    #     D = (r**2 + z**2 - L2**2 - L3**2) / (2 * L2 * L3)
-    #     if abs(D) > 1:
-    #         #self.get_logger().warn("Kuda ćeš sinko?")
-    #         return None
+    #     # if(abs(theta2 - joint_state.position[1]) > abs(-theta2 - joint_state.position[1])):
+    #     #     theta2 = -theta2
 
-    #     theta3 = np.arctan2(np.sqrt(1 - D**2), D)
-
-    #     phi = np.arctan2(z, r)
-    #     beta = np.arctan2(L3 * np.sin(theta3), L2 + L3 * np.cos(theta3))
-    #     theta2 = phi - beta
+    #     theta3 = - theta2_3 + theta2
 
     #     return theta1, theta2, theta3
+
+    @staticmethod
+    def inverse_kinematics(w):
+        x_target, y_target, z_target = w
+        #z_tool = -1.0
+
+
+        theta1, theta2, theta3 = symbols('theta1 theta2 theta3')
+
+        wx = p0x + p1x*cos(theta1) - p3z*cos(theta1) + p2x*sin(theta1)*sin(theta2) - p3x*cos(theta2)*sin(theta1)*sin(theta3) + p3x*cos(theta3)*sin(theta1)*sin(theta2)
+        wy = p1x*sin(theta1) - p3z*sin(theta1) - p2x*cos(theta1)*sin(theta2) - p3x*sin(theta2-theta3)*cos(theta1)
+        wz = p0z + p1z + p2x*cos(theta2) + p3x*cos(theta2-theta3)
+        wrzt = cos(theta2 - theta3)
+
+        eq1 = wx - x_target
+        eq2 = wy - y_target
+        eq3 = wz - z_target
+        #eq4 = wrzt - z_tool
+
+
+        initial_guess = [0, -math.pi/4, math.pi/2]
+        try: 
+            solutions = nsolve((eq1, eq2, eq3), (theta1, theta2, theta3), initial_guess)
+            theta1_num, theta2_num, theta3_num = [Kinematics.wrap_angle(float(s)) for s in solutions]
+            T_base_tool = Kinematics.direct_kinematics(theta1_num, theta2_num, theta3_num)
+            if not (np.isclose(T_base_tool[0, 3], x_target, atol=5e-3) and
+                    np.isclose(T_base_tool[1, 3], y_target, atol=5e-3) and
+                    np.isclose(T_base_tool[2, 3], z_target, atol=5e-3)):
+                raise ValueError("Inverse kinematics solution does not match target position.")
+
+        except Exception as e:
+            raise ValueError("Could not find a valid solution for the inverse kinematics.")
+
+        return theta1_num, theta2_num, theta3_num
     
     def joint_state_callback(self, msg):
-        self.joint_state = msg
+        joint_state = msg
        
-        theta1 = self.joint_state.position[0]
-        theta2 = self.joint_state.position[1]
-        theta3 = self.joint_state.position[2]
+        theta1 = joint_state.position[0]
+        theta2 = joint_state.position[1]
+        theta3 = joint_state.position[2]
 
-        T_base_tool = self.direct_kinematics(theta1, theta2, theta3)
+        T_base_tool = Kinematics.direct_kinematics(theta1, theta2, theta3)
 
         t = TransformStamped()
         t.header.stamp = self.get_clock().now().to_msg()
