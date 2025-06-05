@@ -14,19 +14,26 @@ from tf2_ros import TransformBroadcaster
 link_RR = 0.20
 link_90 = 0.016
 izvrsni_clan = 0.023
-postolje = 0.06
+postolje = 0.006
 dynamixel_height = 0.03525
 dynamixel_width = 0.036
 dynamixel_height_from_bolt = 0.032
 dynamixel_offset = 0.012
-tool_length = 0.107
+tool_length = 0 #0.107
 
 
-# Link legths 
-link1 = postolje + dynamixel_width + link_90 + dynamixel_height_from_bolt
-link2 = link_RR
-link3 = dynamixel_height + izvrsni_clan + tool_length
-tool_link = dynamixel_height + izvrsni_clan + tool_length
+p0x = 0.012
+p0z = postolje + 0.033
+
+p1x = 0.019
+p1z = 0.02 + 0.028
+
+p2x = link_RR
+
+p3x = + 0.04 + 0.02 + tool_length
+p3z = 0.02
+
+
 
 
 class Kinematics(Node):
@@ -38,75 +45,69 @@ class Kinematics(Node):
         self.joint_state_subscriber = self.create_subscription(JointState, 'joint_states', self.joint_state_callback, 10)
         self.joint_state = None
 
-        self.br = TransformBroadcaster(self)
-
-        self.link1 = link1
-        self.link2 = link2
-        self.link3 = link3
-        self.tool_link = tool_link
-        self.dynamixel_offset = dynamixel_offset
+        self.br = TransformBroadcaster(self)        
 
         self.get_logger().info("Kinematics Node has been started.")
 
 
     def direct_kinematics(self, theta1, theta2, theta3):
         A0_1 = np.array([
-            [np.cos(theta1), -np.sin(theta1), 0, self.dynamixel_offset * np.cos(theta1)],
-            [np.sin(theta1),  np.cos(theta1), 0, self.dynamixel_offset * np.sin(theta1)],
-            [0,               0,              1, self.link1],
+            [np.cos(theta1), -np.sin(theta1), 0, p0x],
+            [np.sin(theta1),  np.cos(theta1), 0, 0],
+            [0,               0,              1, p0z],
             [0,               0,              0, 1]
         ])
 
         A1_2 = np.array([
-            [np.cos(theta2), -np.sin(theta2),  0, self.link2 * np.cos(theta2)],
-            [np.sin(theta2),  np.cos(theta2),  0, self.link2 * np.sin(theta2)],
-            [0,               0,               1, 0],
-            [0,               0,  0,              1]
+            [0,               0,                1, p1x],
+            [-np.sin(theta2), -np.cos(theta2),  0, 0],
+            [np.cos(theta2),  -np.sin(theta2),  0, p1z],
+            [0,               0,                0, 1]
         ])
 
         A2_3 = np.array([
-            [np.cos(theta3), -np.sin(theta3), 0, self.link3 * np.cos(theta3)],
-            [np.sin(theta3),  np.cos(theta3), 0, self.link3 * np.sin(theta3)],
-            [0,               0,              1, 0],
-            [0,               0,              0, 1]
+            [np.cos(theta3),  -np.sin(theta3),  0, p2x],
+            [-np.sin(theta3), -np.cos(theta3),  0, 0],
+            [0,               0,              -1,  0],
+            [0,               0,               0,  1]
         ])
 
         A3_4 = np.array([
-            [1, 0, 0, 0],
-            [0, 1, 0, 0],
-            [0, 0, 1, self.tool_link],
-            [0, 0, 0, 1]
+            [ 0, 0, 1, p3x],
+            [ 0, 1, 0, 0],
+            [-1, 0, 0, p3z],
+            [ 0, 0, 0, 1]
         ])
 
         Transform_matrix = A0_1 @ A1_2 @ A2_3 @ A3_4
         return Transform_matrix
 
-    @staticmethod
-    def inverse_kinematics(position):
-        Px = position[0] 
-        Py = position[1]
-        Pz = position[2]
+    # @staticmethod
+    # def inverse_kinematics(position):
+    #     Px = position[0] 
+    #     Py = position[1]
+    #     Pz = position[2]
 
-        theta1 = np.arctan2(Py, Px)
+    #     theta1 = np.arctan2(Py, Px)
 
-        r = np.sqrt(Px**2 + Py**2)
-        z = Pz - link1 - tool_link
+    #     r = np.sqrt(Px**2 + Py**2)
+    #     z = Pz - link1 - tool_link
 
-        L2 = link2
-        L3 = link3
+    #     L2 = link2
+    #     L3 = link3
 
-        D = (r**2 + z**2 - L2**2 - L3**2) / (2 * L2 * L3)
-        if abs(D) > 1:
-            #self.get_logger().warn("Kuda ćeš sinko?")
-            return None
+    #     D = (r**2 + z**2 - L2**2 - L3**2) / (2 * L2 * L3)
+    #     if abs(D) > 1:
+    #         #self.get_logger().warn("Kuda ćeš sinko?")
+    #         return None
 
-        theta3 = np.arctan2(np.sqrt(1 - D**2), D)
+    #     theta3 = np.arctan2(np.sqrt(1 - D**2), D)
 
-        phi = np.arctan2(z, r)
-        beta = np.arctan2(L3 * np.sin(theta3), L2 + L3 * np.cos(theta3))
-        theta2 = phi - beta
+    #     phi = np.arctan2(z, r)
+    #     beta = np.arctan2(L3 * np.sin(theta3), L2 + L3 * np.cos(theta3))
+    #     theta2 = phi - beta
 
-        return theta1, theta2, theta3
+    #     return theta1, theta2, theta3
     
     def joint_state_callback(self, msg):
         self.joint_state = msg

@@ -26,17 +26,22 @@ class prarobClientNode(Node):
             10
         )
 
-        # TEST single point
-        #print(self.move_robot([0, 0.0, -2.0]))
-        #self.get_clock().sleep_for(Duration(seconds=1.0))
-        #print(self.move_robot([0, 1.0, -2.0]))
-        #self.get_clock().sleep_for(Duration(seconds=1.0))
-        #print(self.move_robot([-1.0, 0.0, -2.0]))
-        #print(self.move_robot([0, 0.0, 2.0]))
-        #self.get_clock().sleep_for(Duration(seconds=1.0))
-        #print(self.move_robot([0, -1.0, 2.0]))
-        #self.get_clock().sleep_for(Duration(seconds=1.0))
-        #print(self.move_robot([1.0, 0.0, -2.0]))
+        time.sleep(1.0)  
+        # # TEST single point
+        print(self.move_robot([0.0, 0.0, 0.0]))
+        self.get_clock().sleep_for(Duration(seconds=5.0))
+        print(self.move_robot([3.1459, 0.0, 0.0]))
+        self.get_clock().sleep_for(Duration(seconds=5.0))
+        print(self.move_robot([1.5708, 1.5708, 0.0]))
+        self.get_clock().sleep_for(Duration(seconds=5.0))
+        print(self.move_robot([0.0, 1.5708, 0.0]))
+        self.get_clock().sleep_for(Duration(seconds=5.0))
+        print(self.move_robot([0.0, 1.5708, 1.5708]))
+        self.get_clock().sleep_for(Duration(seconds=5.0))
+        print(self.move_robot([0.0, 0.0, 1.5708]))
+        self.get_clock().sleep_for(Duration(seconds=5.0))
+        print(self.move_robot([0.0, 0.0, 0.0]))
+        self.get_clock().sleep_for(Duration(seconds=5.0))
 
         #q1, q2, q3 = Kinematics().inverse_kinematics((0.05, 0.05, 0.05))
         #print(f'Inverse kinematics result: q1={q1}, q2={q2}, q3={q3}')
@@ -56,7 +61,7 @@ class prarobClientNode(Node):
         goal_point.positions.append(q[0])
         goal_point.positions.append(q[1])
         goal_point.positions.append(q[2])
-        goal_point.time_from_start = Duration(seconds=0.1).to_msg()
+        goal_point.time_from_start = Duration(seconds=5.0).to_msg()
 
         goal_trajectory.points.append(goal_point)
 

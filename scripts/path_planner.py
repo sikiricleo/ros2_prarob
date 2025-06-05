@@ -120,32 +120,32 @@ class PathPlannerNode(Node):
         return max(0, min(num, limit))
     
     def plan_path(self, start_position_world, goal_position_world, obstacle_positions_bottom_left, obstacle_positions_top_right):
-        grid_resolution = 0.01      # 1 cm resolution
+        grid_resolution = 0.005      # 5 mm resolution
         grid_origin_x = -0.25
-        grid_origin_y = 0.33
-        num_rows = 40
-        num_cols = 40
+        grid_origin_y = 0.40
+        num_rows = int(0.4 / grid_resolution)  # 40 cm height
+        num_cols = int(0.4 / grid_resolution)  # 40 cm width
         grid = np.ones((num_rows, num_cols)) 
 
         # Mark obstacles in the grid
         if obstacle_positions_bottom_left:
+            inflate = int(0.01 / grid_resolution)  # 1 cm inflation
             for i in range(len(obstacle_positions_bottom_left)):
                 x_min = obstacle_positions_bottom_left[i][0]
                 y_min = obstacle_positions_bottom_left[i][1]
                 x_max = obstacle_positions_top_right[i][0]
                 y_max = obstacle_positions_top_right[i][1]
-                col_min = self.clamp_to_grid(int((x_min - grid_origin_x) / grid_resolution), num_cols - 1)
-                col_max = self.clamp_to_grid(int((x_max - grid_origin_x) / grid_resolution), num_cols- 1)
-                row_min = self.clamp_to_grid(int((grid_origin_y - y_max) / grid_resolution), num_rows - 1)
-                row_max = self.clamp_to_grid(int((grid_origin_y - y_min) / grid_resolution), num_rows - 1)
-
+                col_min = self.clamp_to_grid(int((x_min - grid_origin_x) / grid_resolution) - inflate, num_cols - 1)
+                col_max = self.clamp_to_grid(int((x_max - grid_origin_x) / grid_resolution) + inflate, num_cols - 1)
+                row_min = self.clamp_to_grid(int((grid_origin_y - y_max) / grid_resolution) - inflate, num_rows - 1)
+                row_max = self.clamp_to_grid(int((grid_origin_y - y_min) / grid_resolution) + inflate, num_rows - 1)
+                 
                 for r in range(row_min, row_max + 1):
                     for c in range(col_min, col_max + 1):
                         grid[r][c] = 0
 
         self.get_logger().info(f"Grid created with {grid}")
         grid_object = Grid(matrix = grid.tolist())
-
 
         start_node = grid_object.node(
             self.clamp_to_grid(int((start_position_world[0] - grid_origin_x) / grid_resolution), num_cols - 1),
@@ -218,9 +218,9 @@ class PathPlannerNode(Node):
         # pen up
         planned_joint_sequence_pu = PlannedJointSequence()
         joint_state_pu = JointState()
-        joint_state_pu.q1, joint_state_pu.q2, joint_state_pu.q3 = Kinematics.inverse_kinematics((robot_path_coordinates[0][0], robot_path_coordinates[0][1], 0.05))
+        joint_state_pu.q1, joint_state_pu.q2, joint_state_pu.q3 = Kinematics.inverse_kinematics((robot_path_coordinates[0][0], robot_path_coordinates[0][1], 0.02))
         planned_joint_sequence_pu.joints_sequence.append(joint_state_pu)
-        self.joint_sequence_publisher.publish(planned_joint_sequence)
+        self.joint_sequence_publisher.publish(planned_joint_sequence_pu)
 
         time.sleep(1.0)
 
@@ -231,6 +231,15 @@ class PathPlannerNode(Node):
             joint_state.q1, joint_state.q2, joint_state.q3 = Kinematics.inverse_kinematics((coord[0], coord[1], 0,)) 
             planned_joint_sequence.joints_sequence.append(joint_state)
         self.joint_sequence_publisher.publish(planned_joint_sequence)
+
+        time.sleep(1.0)
+        
+        # pen up
+        planned_joint_sequence_pu = PlannedJointSequence()
+        joint_state_pu = JointState()
+        joint_state_pu.q1, joint_state_pu.q2, joint_state_pu.q3 = Kinematics.inverse_kinematics((robot_path_coordinates[-1][0], robot_path_coordinates[-1][1], 0.05))
+        planned_joint_sequence_pu.joints_sequence.append(joint_state_pu)
+        self.joint_sequence_publisher.publish(planned_joint_sequence_pu)
 
     
 
