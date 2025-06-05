@@ -11,3 +11,6 @@ temp/
 __pycache__/
 
 *.pt
+
+kinematics_old.py
+test.py
