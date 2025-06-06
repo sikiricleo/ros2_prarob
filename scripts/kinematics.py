@@ -21,7 +21,7 @@ dynamixel_height = 0.03525
 dynamixel_width = 0.036
 dynamixel_height_from_bolt = 0.032
 dynamixel_offset = 0.012
-tool_length = 0.107
+tool_length = 0.105
 
 
 p0x = 0.012
@@ -87,22 +87,6 @@ class Kinematics(Node):
         Transform_matrix = A0_1 @ A1_2 @ A2_3 @ A3_4
         return Transform_matrix
 
-    # @staticmethod
-    # def inverse_kinematics(w):
-    #     w1, w2, w3, w4, w5, w6 = w
-
-    #     theta1 = math.atan2(w4, -w5)
-
-    #     theta2_3 = math.atan2(w4, math.sin(theta1) * w6)
-
-    #     theta2 = -math.acos((w3 - p0z - p1z - p3x * math.cos(theta2_3))/p2x)
-
-    #     # if(abs(theta2 - joint_state.position[1]) > abs(-theta2 - joint_state.position[1])):
-    #     #     theta2 = -theta2
-
-    #     theta3 = - theta2_3 + theta2
-
-    #     return theta1, theta2, theta3
 
     @staticmethod
     def inverse_kinematics(w):
@@ -114,7 +98,6 @@ class Kinematics(Node):
         wx = p0x + p1x*cos(theta1) - p3z*cos(theta1) + p2x*sin(theta1)*sin(theta2) - p3xIK*cos(theta2)*sin(theta1)*sin(theta3) + p3xIK*cos(theta3)*sin(theta1)*sin(theta2)
         wy = p1x*sin(theta1) - p3z*sin(theta1) - p2x*cos(theta1)*sin(theta2) - p3xIK*sin(theta2-theta3)*cos(theta1)
         wz = p0z + p1z + p2x*cos(theta2) + p3xIK*cos(theta2-theta3)
-        wrzt = cos(theta2 - theta3)
 
         eq1 = wx - x_target
         eq2 = wy - y_target

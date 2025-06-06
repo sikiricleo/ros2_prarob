@@ -43,18 +43,30 @@ class PathPlannerNode(Node):
             '/planned_joint_sequence',
             10
         )
-
         self.camera_intrinsics = np.array(
-                                 [[1310.9971846209182, 0, 333.73199923763389], 
-                                  [0, 1317.9156230092792, 392.66682249055191],
-                                  [0, 0, 1]
-                                 ])
+            [[1084.1840020476889, 0, 411.87995124331889], 
+             [0, 1071.3962679852343, 246.97610268770268],
+             [ 0, 0, 1]
+            ])
+        
+        # self.camera_intrinsics_old = np.array(
+        #                          [[1310.9971846209182, 0, 333.73199923763389], 
+        #                           [0, 1317.9156230092792, 392.66682249055191],
+        #                           [0, 0, 1]
+        #                          ])
+        # self.T_camera_robot_old = np.array(
+        #                       [[0.98741, 0.12037, 0.10261, 0.01909],
+        #                        [0.10945, -0.98831, 0.10617, 0.06678],
+        #                        [0.11419, -0.0936, -0.98904, 0.92001],
+        #                        [0, 0, 0, 1]
+        #                       ])
+        
         self.T_camera_robot = np.array(
-                              [[0.98741, 0.12037, 0.10261, 0.01909],
-                               [0.10945, -0.98831, 0.10617, 0.06678],
-                               [0.11419, -0.0936, -0.98904, 0.92001],
-                               [0, 0, 0, 1]
-                              ])
+                              [[ 0.97731, 0.14983, 0.1497 ,-0.03663],
+                               [0.14899,-0.98869, 0.01687, 0.1751 ],
+                               [ 0.15054, 0.00581,-0.98859, 0.70135],
+                               [ 0.0     , 0.0     , 0.0     , 1.0     ]
+                               ])
 
         self.yolo_detections = None
 
@@ -87,11 +99,10 @@ class PathPlannerNode(Node):
             ax.legend()
             plt.grid(True)
             
-            package_path = get_package_share_directory('ros2_prarob')
-            temp_folder = os.path.join(package_path, 'temp')
+            script_dir = os.path.dirname(os.path.realpath(__file__))
+            temp_folder = os.path.join(script_dir, '..', 'temp')
             os.makedirs(temp_folder, exist_ok=True)
 
-            # Save the image
             image_path = os.path.join(temp_folder, f'path_plot_{self.inference_id}.png')
             plt.savefig(image_path, bbox_inches='tight')
             plt.show()
@@ -234,7 +245,7 @@ class PathPlannerNode(Node):
 
         robot_path_coordinates = []
         for node in path:
-            robot_x = grid_origin_x + node.x * grid_resolution + grid_resolution / 2 
+            robot_x = grid_origin_x + node.x * grid_resolution - grid_resolution / 2 
             robot_y = grid_origin_y - node.y * grid_resolution - grid_resolution / 2
             robot_path_coordinates.append((robot_x, robot_y))
 
@@ -270,24 +281,30 @@ class PathPlannerNode(Node):
             planned_joint_sequence_pu.duration = 1.0
             self.joint_sequence_publisher.publish(planned_joint_sequence_pu)
 
-            time.sleep(1.0)
-
             # pen down
             planned_joint_sequence = PlannedJointSequence()
             for coord in robot_path_coordinates:
                 joint_state = JointState()
                 joint_state.q1, joint_state.q2, joint_state.q3 = Kinematics.inverse_kinematics((coord[0], coord[1], 0,)) 
                 planned_joint_sequence.joints_sequence.append(joint_state)
-            planned_joint_sequence.duration = 4.0 / len(robot_path_coordinates)
+            planned_joint_sequence.duration = 1.0 / len(robot_path_coordinates)
             self.joint_sequence_publisher.publish(planned_joint_sequence)
 
-            time.sleep(4.0)
+            time.sleep(1.0)
         
             # pen up
             planned_joint_sequence_pu = PlannedJointSequence()
             joint_state_pu = JointState()
             joint_state_pu.q1, joint_state_pu.q2, joint_state_pu.q3 = Kinematics.inverse_kinematics((robot_path_coordinates[-1][0], robot_path_coordinates[-1][1], 0.05)) 
             planned_joint_sequence_pu.joints_sequence.append(joint_state_pu)
+            planned_joint_sequence_pu.duration = 0.5
+            self.joint_sequence_publisher.publish(planned_joint_sequence_pu)
+
+            time.sleep(0.5)
+
+            # origin
+            planned_joint_sequence_pu = PlannedJointSequence()
+            joint_state_pu = JointState()
             joint_state_pu.q1, joint_state_pu.q2, joint_state_pu.q3 = (0.0, 0.0, 0.0)
             planned_joint_sequence_pu.joints_sequence.append(joint_state_pu)
             planned_joint_sequence_pu.duration = 1.0
