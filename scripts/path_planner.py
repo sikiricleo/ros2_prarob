@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import rclpy
 from rclpy.node import Node
 import numpy as np
@@ -14,6 +15,9 @@ from pathfinding.core.grid import Grid
 from pathfinding.finder.a_star import AStarFinder
 from pathfinding.core.diagonal_movement import DiagonalMovement
 from pathfinding.core.heuristic import euclidean
+
+import matplotlib.pyplot as plt
+from ament_index_python.packages import get_package_share_directory
 
 
 class PathPlannerNode(Node):
@@ -54,8 +58,44 @@ class PathPlannerNode(Node):
 
         self.yolo_detections = None
 
+        self.inference_id = 0
+
         self.get_logger().info("Path Planner Node has been started.")
-        
+    
+    def plot_grid(self, grid, path=None, start=None, goal=None):
+            grid_array = np.array(grid)
+            fig, ax = plt.subplots(figsize=(6, 6))
+
+            # Show grid (1 = free, 0 = obstacle)
+            ax.imshow(grid_array, cmap='gray_r', origin='upper')
+
+            # Plot path if available
+            if path:
+                path_x = [p[0] for p in path]
+                path_y = [p[1] for p in path]
+                ax.plot(path_x, path_y, color='blue', linewidth=2, label='Path')
+
+            # Plot start and goal
+            if start:
+                ax.plot(start[0], start[1], 'go', markersize=8, label='Start')
+            if goal:
+                ax.plot(goal[0], goal[1], 'ro', markersize=8, label='Goal')
+
+            ax.set_title('Path Planning Grid')
+            ax.set_xlabel('Column Index')
+            ax.set_ylabel('Row Index')
+            ax.legend()
+            plt.grid(True)
+            
+            package_path = get_package_share_directory('ros2_prarob')
+            temp_folder = os.path.join(package_path, 'temp')
+            os.makedirs(temp_folder, exist_ok=True)
+
+            # Save the image
+            image_path = os.path.join(temp_folder, f'path_plot_{self.inference_id}.png')
+            plt.savefig(image_path, bbox_inches='tight')
+            plt.show()
+            self.inference_id += 1
 
 
     def detections_callback(self, msg):
@@ -113,6 +153,7 @@ class PathPlannerNode(Node):
                     self.T_camera_robot
                 ) for obstacle in obstacle_boundaries
             ]
+            self.get_logger().info(f"Obstacle positions: {obstacle_positions_bottom_left} to {obstacle_positions_top_right}")
 
         return start_position_world, goal_position_world, obstacle_positions_bottom_left, obstacle_positions_top_right
     
@@ -122,14 +163,14 @@ class PathPlannerNode(Node):
     def plan_path(self, start_position_world, goal_position_world, obstacle_positions_bottom_left, obstacle_positions_top_right):
         grid_resolution = 0.005      # 5 mm resolution
         grid_origin_x = -0.25
-        grid_origin_y = 0.40
+        grid_origin_y = 0.35
         num_rows = int(0.4 / grid_resolution)  # 40 cm height
         num_cols = int(0.4 / grid_resolution)  # 40 cm width
         grid = np.ones((num_rows, num_cols)) 
 
         # Mark obstacles in the grid
         if obstacle_positions_bottom_left:
-            inflate = int(0.01 / grid_resolution)  # 1 cm inflation
+            inflate = int(0.01 / grid_resolution)  # 2 cm inflation
             for i in range(len(obstacle_positions_bottom_left)):
                 x_min = obstacle_positions_bottom_left[i][0]
                 y_min = obstacle_positions_bottom_left[i][1]
@@ -137,14 +178,24 @@ class PathPlannerNode(Node):
                 y_max = obstacle_positions_top_right[i][1]
                 col_min = self.clamp_to_grid(int((x_min - grid_origin_x) / grid_resolution) - inflate, num_cols - 1)
                 col_max = self.clamp_to_grid(int((x_max - grid_origin_x) / grid_resolution) + inflate, num_cols - 1)
-                row_min = self.clamp_to_grid(int((grid_origin_y - y_max) / grid_resolution) - inflate, num_rows - 1)
-                row_max = self.clamp_to_grid(int((grid_origin_y - y_min) / grid_resolution) + inflate, num_rows - 1)
-                 
+                row_min = self.clamp_to_grid(int((grid_origin_y - y_min) / grid_resolution) - inflate, num_rows - 1)
+                row_max = self.clamp_to_grid(int((grid_origin_y - y_max) / grid_resolution) + inflate, num_rows - 1)
+                
+                if row_min > row_max:
+                    t = row_min
+                    row_min = row_max
+                    row_max = t
+                if col_min > col_max:
+                    t = col_min
+                    col_min = col_max
+                    col_max = t
+
+                self.get_logger().info(f"Obstacle at grid: from row ({row_min} to {row_max}), from col ({col_min} to {col_max})")
+
                 for r in range(row_min, row_max + 1):
                     for c in range(col_min, col_max + 1):
                         grid[r][c] = 0
 
-        self.get_logger().info(f"Grid created with {grid}")
         grid_object = Grid(matrix = grid.tolist())
 
         start_node = grid_object.node(
@@ -158,16 +209,6 @@ class PathPlannerNode(Node):
             self.clamp_to_grid(int((grid_origin_y - goal_position_world[1]) / grid_resolution), num_rows - 1)
         )
         self.get_logger().info(f"Goal node: {goal_node}")
-
-        #num_rows = grid_object.height
-        #num_cols = grid_object.width
-
-        #for y in range(num_rows):
-        #    row_cells = []
-        #    for x in range(num_cols):
-        #        node = grid_object.node(x, y)
-        #        row_cells.append('0' if node.walkable else '1')
-        #    self.get_logger().info(' '.join(row_cells))      
 
         finder = AStarFinder(
             diagonal_movement=DiagonalMovement.always,
@@ -185,6 +226,11 @@ class PathPlannerNode(Node):
             return None
         else:
             self.get_logger().info(f"Path found with {len(path)} nodes and {runs} runs.")
+
+        # Visualize the grid and the path
+        grid_copy = [[1 - int(cell) for cell in row] for row in grid]  # Invert: 1 = obstacle for imshow
+        path_for_plot = [(node.x, node.y) for node in path]
+        self.plot_grid(grid_copy, path=path_for_plot, start=(start_node.x, start_node.y), goal=(goal_node.x, goal_node.y))
 
         robot_path_coordinates = []
         for node in path:
@@ -232,15 +278,17 @@ class PathPlannerNode(Node):
                 joint_state = JointState()
                 joint_state.q1, joint_state.q2, joint_state.q3 = Kinematics.inverse_kinematics((coord[0], coord[1], 0,)) 
                 planned_joint_sequence.joints_sequence.append(joint_state)
-            planned_joint_sequence.duration = 2.0 / len(robot_path_coordinates)
+            planned_joint_sequence.duration = 4.0 / len(robot_path_coordinates)
             self.joint_sequence_publisher.publish(planned_joint_sequence)
 
-            time.sleep(1.0)
+            time.sleep(4.0)
         
             # pen up
             planned_joint_sequence_pu = PlannedJointSequence()
             joint_state_pu = JointState()
-            joint_state_pu.q1, joint_state_pu.q2, joint_state_pu.q3 = Kinematics.inverse_kinematics((robot_path_coordinates[-1][0], robot_path_coordinates[-1][1], 0.05))
+            joint_state_pu.q1, joint_state_pu.q2, joint_state_pu.q3 = Kinematics.inverse_kinematics((robot_path_coordinates[-1][0], robot_path_coordinates[-1][1], 0.05)) 
+            planned_joint_sequence_pu.joints_sequence.append(joint_state_pu)
+            joint_state_pu.q1, joint_state_pu.q2, joint_state_pu.q3 = (0.0, 0.0, 0.0)
             planned_joint_sequence_pu.joints_sequence.append(joint_state_pu)
             planned_joint_sequence_pu.duration = 1.0
             self.joint_sequence_publisher.publish(planned_joint_sequence_pu)

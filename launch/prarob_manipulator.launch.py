@@ -48,7 +48,7 @@ def generate_launch_description():
     yolo_launch_file = os.path.join(
         get_package_share_directory('yolo_bringup'),
         'launch',
-        'yolo.launch.py'
+        'yolo.launch.py',
     )
 
         

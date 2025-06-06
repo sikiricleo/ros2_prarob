@@ -32,7 +32,8 @@ p1z = 0.02 + 0.028
 
 p2x = link_RR
 
-p3x = + 0.04 + 0.02 + tool_length
+p3xDK = + 0.04 + 0.02 + tool_length
+p3xIK = 0.04 + 0.02 + tool_length
 p3z = 0.02
 
 
@@ -77,7 +78,7 @@ class Kinematics(Node):
         ])
 
         A3_4 = np.array([
-            [ 0, 0, 1, p3x],
+            [ 0, 0, 1, p3xDK],
             [ 0, 1, 0, 0],
             [-1, 0, 0, p3z],
             [ 0, 0, 0, 1]
@@ -106,21 +107,18 @@ class Kinematics(Node):
     @staticmethod
     def inverse_kinematics(w):
         x_target, y_target, z_target = w
-        #z_tool = -1.0
 
 
         theta1, theta2, theta3 = symbols('theta1 theta2 theta3')
 
-        wx = p0x + p1x*cos(theta1) - p3z*cos(theta1) + p2x*sin(theta1)*sin(theta2) - p3x*cos(theta2)*sin(theta1)*sin(theta3) + p3x*cos(theta3)*sin(theta1)*sin(theta2)
-        wy = p1x*sin(theta1) - p3z*sin(theta1) - p2x*cos(theta1)*sin(theta2) - p3x*sin(theta2-theta3)*cos(theta1)
-        wz = p0z + p1z + p2x*cos(theta2) + p3x*cos(theta2-theta3)
+        wx = p0x + p1x*cos(theta1) - p3z*cos(theta1) + p2x*sin(theta1)*sin(theta2) - p3xIK*cos(theta2)*sin(theta1)*sin(theta3) + p3xIK*cos(theta3)*sin(theta1)*sin(theta2)
+        wy = p1x*sin(theta1) - p3z*sin(theta1) - p2x*cos(theta1)*sin(theta2) - p3xIK*sin(theta2-theta3)*cos(theta1)
+        wz = p0z + p1z + p2x*cos(theta2) + p3xIK*cos(theta2-theta3)
         wrzt = cos(theta2 - theta3)
 
         eq1 = wx - x_target
         eq2 = wy - y_target
         eq3 = wz - z_target
-        #eq4 = wrzt - z_tool
-
 
         initial_guess = [0, -math.pi/4, math.pi/2]
         try: 

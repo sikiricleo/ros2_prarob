@@ -16,6 +16,7 @@ find_package(ros2_controllers REQUIRED)
 find_package(dynamixel_hardware REQUIRED)
 
 install(DIRECTORY
+  temp
   urdf
   controllers
   launch
